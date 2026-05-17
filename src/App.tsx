@@ -1,10 +1,21 @@
 import React from 'react';
-import AuthPage from './components/AuthPage';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import AuthPage from './components/AuthPage'; // Dosya yollarını projene göre ayarla
+import  EmailVerification  from './components/EmailVerification';
 
-function App(): React.JSX.Element {
+export default function App(): React.JSX.Element {
   return (
-    <AuthPage />
+    <BrowserRouter>
+      <Routes>
+        {/* Giriş ve Kayıt Sayfası -> fısıltı.com/auth adresinde çalışacak */}
+        <Route path="/auth" element={<AuthPage />} />
+
+        {/* E-posta Doğrulama Sayfası -> fısıltı.com/verify adresinde çalışacak */}
+        <Route path="/verify" element={<EmailVerification />} />
+
+        {/* Kullanıcı direkt boş siteye girerse (fısıltı.com) otomatik olarak /auth sayfasına yönlendir */}
+        <Route path="*" element={<Navigate to="/auth" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
