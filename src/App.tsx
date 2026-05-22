@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './components/AuthPage'; // Dosya yollarını projene göre ayarla
 import  EmailVerification  from './components/EmailVerification';
 import UserFeed from './components/pages/UserFeed';
+import { ProfilePage } from './components/pages/ProfilePage'; // Yeni ekledik
 
 export default function App(): React.JSX.Element {
   return (
@@ -18,6 +19,12 @@ export default function App(): React.JSX.Element {
         <Route path="*" element={<Navigate to="/auth" replace />} />
 
         <Route path="/home" element={<UserFeed />} />
+
+        {/* YENİ: Profil Sayfası (Bu da kendi içinde sidebar'ı çağıracak) */}
+        <Route path="/profile" element={<ProfilePage />} />
+
+        {/* Otomatik Yönlendirme */}
+        <Route path="*" element={<Navigate to="/auth" replace />} />
 
       </Routes>
     </BrowserRouter>

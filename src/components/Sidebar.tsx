@@ -1,17 +1,23 @@
 import React from 'react';
 import { FiHome, FiUser, FiLogOut } from 'react-icons/fi';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
+// Propları tamamen kaldırdık veya eski dosyalar hata vermesin diye opsiyonel yaptık.
 interface SidebarProps {
-  currentTab: string;
-  setCurrentTab: (tab: string) => void;
+  currentTab?: string;
+  setCurrentTab?: (tab: string) => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) => {
+export const Sidebar: React.FC<SidebarProps> = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // Güncel URL'i takip eder (/home mu /profile mı?)
+
+  // Butonların aktiflik durumunu doğrudan URL adresi belirler
+  const isHomeActive = location.pathname === '/home';
+  const isProfileActive = location.pathname === '/profile';
 
   const handleLogout = () => {
-    navigate('/'); 
+    navigate('/auth');
   };
 
   return (
@@ -21,21 +27,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
       backgroundColor: '#FFFFFF',
       borderRight: '1px solid #E5E7EB',
       position: 'fixed',
-      left: 0,
       top: 0,
-      padding: '32px 24px',
+      left: 0,
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
+      padding: '24px 16px',
       boxSizing: 'border-box',
       zIndex: 100
     }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-        
-        {/* YENİLENEN ALAN: Giriş sayfasındaki orijinal Fısıltı Logosu ve Yazısı */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      
+      <div>
+        {/* Orijinal Konuşma Balonlu Fısıltı Logosu */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px', paddingLeft: '8px' }}>
           <div style={{ 
-            width: '44px', // Sidebar oranına uygun olarak 44px yaptık
+            width: '44px', 
             height: '44px', 
             backgroundImage: 'linear-gradient(to bottom right, #5bc0be, #4F46E5)', 
             borderRadius: '12px', 
@@ -44,7 +50,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
             alignItems: 'center',
             boxShadow: '0px 4px 15px rgba(79, 70, 229, 0.15)'
           }}>
-            {/* Orijinal Konuşma Balonu Simgesi */}
             <div style={{ 
               width: '16px', 
               height: '16px', 
@@ -53,13 +58,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
               borderBottomLeftRadius: '0' 
             }} />
           </div>
-          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E1B4B', letterSpacing: '0.5px' }}>Fısıltı</span>
+          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1E1B4B', letterSpacing: '0.5px', fontFamily: 'sans-serif' }}>
+            Fısıltı
+          </span>
         </div>
 
-        {/* Menü Butonları */}
+        {/* Menü Navigasyon Alanı */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          
+          {/* ANA SAYFA BUTONU */}
           <button
-            onClick={() => setCurrentTab('feed')}
+            onClick={() => navigate('/home')} // State değiştirmek yok, direkt sayfaya git!
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -72,16 +81,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
               fontSize: '15px',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              backgroundColor: currentTab === 'feed' ? '#FDFBF7' : 'transparent',
-              color: currentTab === 'feed' ? '#4F46E5' : '#6B7280',
+              backgroundColor: isHomeActive ? '#FDFBF7' : 'transparent',
+              color: isHomeActive ? '#4F46E5' : '#94A3B8',
             }}
           >
             <FiHome style={{ fontSize: '18px' }} />
             Ana Sayfa
           </button>
 
+          {/* PROFİLİM BUTONU */}
           <button
-            onClick={() => setCurrentTab('profile')}
+            onClick={() => navigate('/profile')} // State değiştirmek yok, direkt gerçek Profil sayfasına git!
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -94,17 +104,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, setCurrentTab }) =
               fontSize: '15px',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              backgroundColor: currentTab === 'profile' ? '#FDFBF7' : 'transparent',
-              color: currentTab === 'profile' ? '#4F46E5' : '#6B7280',
+              backgroundColor: isProfileActive ? '#FDFBF7' : 'transparent',
+              color: isProfileActive ? '#4F46E5' : '#94A3B8',
             }}
           >
             <FiUser style={{ fontSize: '18px' }} />
             Profilim
           </button>
+
         </nav>
       </div>
 
-      {/* En Alt Kısım: Sadece Kırmızı Çıkış Yap Butonu */}
+      {/* EN ALT KISIM: Çıkış Yap Butonu */}
       <button
         onClick={handleLogout}
         style={{
