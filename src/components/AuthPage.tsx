@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 // TypeScript'in istediği gibi 'type' olarak import ediyoruz, böylece o hata tamamen çözülüyor!
 import type { ChangeEvent } from 'react';
 
+
+
 export default function AuthPage(): React.JSX.Element {
+  const navigate = useNavigate(); // 2. Fonksiyonun İLK satırında navigate tanımlı
   // Giriş mi Kayıt mı sekmesinde olduğumuzu tutan state
+  
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
   
@@ -54,11 +59,27 @@ export default function AuthPage(): React.JSX.Element {
     return;
   }
 
-  alert("Kaydınız başarıyla oluşturuldu!");
+  // BAĞLANTI BURADA YAPILIYOR: Kayıt başarılıysa kullanıcıyı /verify sayfasına uçur!
+    navigate('/verify');
 };
 
   return (
-    <div style={{ backgroundColor: '#FDFBF7', minHeight: '100vh', color: '#1E1B4B', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px', fontFamily: 'sans-serif' }}>
+    <div style={{ 
+        backgroundColor: '#FDFBF7', // Arka plan tamamen kırık beyaz
+        height: '100vh',            // Tarayıcı yüksekliğini %100 kapla
+        width: '100vw',             // Tarayıcı genişliğini %100 kapla
+        position: 'fixed',          // Ekranı kilitler ve bölünmeleri engeller
+        top: 0,
+        left: 0,
+        color: '#1E1B4B', 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        padding: '24px', 
+        fontFamily: 'sans-serif',
+        boxSizing: 'border-box',
+        overflowY: 'auto'           // İçerik ekrana sığmazsa pürüzsüzce aşağı kaydırılabilmesini sağlar
+        }}>
       <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Üst Kısım: Logo ve Başlık */}
@@ -96,7 +117,7 @@ export default function AuthPage(): React.JSX.Element {
             /* ----------------- GİRİŞ YAP PANELİ ----------------- */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 6px 0' }}>Tekrar hoş geldin</h2>
+                <h2 style={{ fontSize: '20px', color: 'black' ,fontWeight: 'bold', margin: '0 0 6px 0' }}>Tekrar hoş geldin</h2>
                 <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>Hesabına giriş yaparak fısıltılara devam et.</p>
               </div>
 
@@ -144,7 +165,7 @@ export default function AuthPage(): React.JSX.Element {
             /* ----------------- KAYIT OL PANELİ ----------------- */
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <h2 style={{ fontSize: '20px', fontWeight: 'bold', margin: '0 0 6px 0' }}>Aramıza katıl</h2>
+                <h2 style={{ fontSize: '20px', color: 'black' , fontWeight: 'bold', margin: '0 0 6px 0' }}>Aramıza katıl</h2>
                 <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>Birkaç saniyede hesabını oluştur.</p>
               </div>
 
