@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './components/AuthPage'; // Dosya yollarını projene göre ayarla
 import  EmailVerification  from './components/EmailVerification';
+import UserFeed from './components/pages/UserFeed';
 
 export default function App(): React.JSX.Element {
   return (
@@ -15,6 +16,9 @@ export default function App(): React.JSX.Element {
 
         {/* Kullanıcı direkt boş siteye girerse (fısıltı.com) otomatik olarak /auth sayfasına yönlendir */}
         <Route path="*" element={<Navigate to="/auth" replace />} />
+
+        <Route path="/home" element={<UserFeed />} />
+
       </Routes>
     </BrowserRouter>
   );
