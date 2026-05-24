@@ -4,6 +4,7 @@ import AuthPage from './components/AuthPage'; // Dosya yollarını projene göre
 import  EmailVerification  from './components/EmailVerification';
 import UserFeed from './components/pages/UserFeed';
 import { ProfilePage } from './components/pages/ProfilePage'; // Yeni ekledik
+import AdminDashboard from './components/pages/AdminDashboard'; // Yeni eklediğimiz admin sayfasını import ettik
 
 export default function App(): React.JSX.Element {
   return (
@@ -23,8 +24,8 @@ export default function App(): React.JSX.Element {
         {/* YENİ: Profil Sayfası (Bu da kendi içinde sidebar'ı çağıracak) */}
         <Route path="/profile" element={<ProfilePage />} />
 
-        {/* Otomatik Yönlendirme */}
-        <Route path="*" element={<Navigate to="/auth" replace />} />
+        {/* 🛠️ YENİ EKLEDİĞİMİZ ADMİN ROTASI */}
+        <Route path="/admin" element={<AdminDashboard />} />
 
       </Routes>
     </BrowserRouter>
