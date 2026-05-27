@@ -2,7 +2,6 @@ import React from 'react';
 import { FiHome, FiUser, FiLogOut } from 'react-icons/fi';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-// Propları tamamen kaldırdık veya eski dosyalar hata vermesin diye opsiyonel yaptık.
 interface SidebarProps {
   currentTab?: string;
   setCurrentTab?: (tab: string) => void;
@@ -10,14 +9,21 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Güncel URL'i takip eder (/home mu /profile mı?)
+  const location = useLocation(); // Güncel URL'i takip eder
 
   // Butonların aktiflik durumunu doğrudan URL adresi belirler
   const isHomeActive = location.pathname === '/home';
   const isProfileActive = location.pathname === '/profile';
 
+  /* ----------------- 🚪 GÜVENLİ ÇIKIŞ YAPMA SİSTEMİ ----------------- */
   const handleLogout = () => {
-    navigate('/auth');
+    // 🎯 KRİTİK: Tarayıcı hafızasındaki tüm oturum verilerini temizliyoruz
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('user');
+
+    // Temizlik bittikten sonra kullanıcıyı giriş kapısına yönlendiriyoruz
+    navigate('/auth', { replace: true });
   };
 
   return (
@@ -38,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
     }}>
       
       <div>
-        {/* Orijinal Konuşma Balonlu Fısıltı Logosu */}
+        {/* Logo Bölümü */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px', paddingLeft: '8px' }}>
           <div style={{ 
             width: '44px', 
@@ -68,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
           
           {/* ANA SAYFA BUTONU */}
           <button
-            onClick={() => navigate('/home')} // State değiştirmek yok, direkt sayfaya git!
+            onClick={() => navigate('/home')} 
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -91,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = () => {
 
           {/* PROFİLİM BUTONU */}
           <button
-            onClick={() => navigate('/profile')} // State değiştirmek yok, direkt gerçek Profil sayfasına git!
+            onClick={() => navigate('/profile')} 
             style={{
               display: 'flex',
               alignItems: 'center',

@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import type { ChangeEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiMail, FiClock, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
+import axios from 'axios';
+
+// 🚀 BACKEND BAĞLANTISI GÜNCELLEMESİ: Port 3000 yapıldı ve /api kaldırıldı
+const API_BASE_URL = 'http://localhost:3000/auth';
 
 export default function EmailVerification(): React.JSX.Element {
+  const navigate = useNavigate();
   const [code, setCode] = useState<string>('');
   const [timeLeft, setTimeLeft] = useState<number>(180); // 3 dakika = 180 saniye
   const [isResendDisabled, setIsResendDisabled] = useState<boolean>(true);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
 
   // Geri sayım sayacı
   useEffect(() => {
@@ -26,19 +33,72 @@ export default function EmailVerification(): React.JSX.Element {
     return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
   };
 
-  const handleVerify = () => {
+  /* ----------------- 🔐 API ENTEGRASYONU: KODU DOĞRULA ----------------- */
+  const handleVerify = async () => {
     if (code.length !== 6) return;
-    alert(`Doğrulama Kodu Gönderiliyor: ${code}`);
+    setVerifyError(null); 
+
+    // Kayıt anında sakladığımız e-postayı alıyoruz ki backend hangi hesabı açacağını bilsin
+    const userEmail = localStorage.getItem('pendingEmail');
+
+    try {
+      // Backend tablosundaki "/verify-email" endpoint'ine istek atıyoruz
+      const response = await axios.post(`${API_BASE_URL}/verify-email`, {
+        email: userEmail, // Hangi kullanıcının doğrulandığını belirtiyoruz
+        code: code
+      });
+
+      if (response.status === 200) {
+        alert("Hesabınız başarıyla aktifleştirildi!");
+        
+        // Eğer giriş token'ı gelmişse kaydediyoruz
+        if (response.data && response.data.token) {
+          localStorage.setItem('token', response.data.token);
+          localStorage.setItem('role', response.data.user?.role || 'USER');
+        }
+
+        // Geçici sakladığımız e-posta bilgisini temizliyoruz
+        localStorage.removeItem('pendingEmail');
+
+        // Kullanıcıyı uygulamanın ana akışına uçuruyoruz
+        navigate('/home');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Doğrulama kodu geçersiz veya süresi dolmuş.";
+      setVerifyError(errorMessage);
+    }
   };
 
-  const handleResendCode = () => {
-    setTimeLeft(180);
-    setIsResendDisabled(true);
-    setCode('');
+  /* ----------------- 🔄 API ENTEGRASYONU: KODU YENİDEN GÖNDER ----------------- */
+  const handleResendCode = async () => {
+    setVerifyError(null);
+    const userEmail = localStorage.getItem('pendingEmail');
+
+    if (!userEmail) {
+      setVerifyError("E-posta bilgisi bulunamadı. Lütfen tekrar kayıt olmayı deneyin.");
+      return;
+    }
+
+    try {
+      // Backend tablosundaki: POST /auth/resend-verify-code
+      // Görüntüdeki istek detayına göre gövdede (body) email bekliyorlar
+      const response = await axios.post(`${API_BASE_URL}/resend-verify-code`, {
+        email: userEmail
+      });
+
+      if (response.status === 200) {
+        alert("Yeni doğrulama kodu e-posta adresinize gönderildi!");
+        setTimeLeft(180);
+        setIsResendDisabled(true);
+        setCode('');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Yeni kod gönderilirken bir hata oluştu.";
+      setVerifyError(errorMessage);
+    }
   };
 
   return (
-    /* SAYFA ARKA PLANI: İkili renk sorununu çözmek için genişlik ve yüksekliği tarayıcıya kilitledik */
     <div style={{ 
       backgroundColor: '#FDFBF7', 
       height: '100vh', 
@@ -60,13 +120,13 @@ export default function EmailVerification(): React.JSX.Element {
         {/* Ana Form Kartı */}
         <div style={{ backgroundColor: '#FFFFFF', padding: '32px', borderRadius: '24px', border: '1px solid #E5E7EB', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05)', position: 'relative' }}>
           
-          {/* Üst Sağ Köşedeki Canlı Geri Sayım Sayacı */}
+          {/* Canlı Geri Sayım Sayacı */}
           <div style={{ position: 'absolute', top: '16px', right: '16px', display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#FDFBF7', border: '1px solid #E5E7EB', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontFamily: 'monospace', color: '#4F46E5', fontWeight: 'bold' }}>
             <FiClock />
             <span>Süre: {formatTime(timeLeft)}</span>
           </div>
 
-          {/* Mektup Amblemi - Artık Kutunun İçinde Başlığın Üstünde */}
+          {/* Mektup Amblemi */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', marginTop: '10px' }}>
             <div style={{ width: '60px', height: '60px', backgroundImage: 'linear-gradient(to bottom right, #5bc0be, #4F46E5)', borderRadius: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0px 4px 15px rgba(79, 70, 229, 0.15)' }}>
               <FiMail style={{ color: 'white', fontSize: '24px' }} />
@@ -82,7 +142,6 @@ export default function EmailVerification(): React.JSX.Element {
           {/* Form İçeriği */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* Giriş Yap Kutusu Stilinde Tekli Kod Giriş Alanı */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <label style={{ fontSize: '14px', textAlign: 'left', fontWeight: 'bold' }}>Doğrulama Kodu</label>
               
@@ -100,7 +159,7 @@ export default function EmailVerification(): React.JSX.Element {
                     backgroundColor: '#FDFBF7', 
                     border: '1px solid #E5E7EB', 
                     borderRadius: '12px', 
-                    padding: '14px 12px 14px 42px', // Kutuyu biraz daha uzatmak için dikey padding'i 14px yaptık
+                    padding: '14px 12px 14px 42px',
                     color: '#1E1B4B', 
                     outline: 'none',
                     fontSize: '20px',
@@ -113,7 +172,12 @@ export default function EmailVerification(): React.JSX.Element {
               </div>
             </div>
 
-            {/* Fısıltı Moru Aktifleştirme Butonu - Giriş Yap Butonuyla Birebir Aynı Boyutta */}
+            {verifyError && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(229, 62, 62, 0.1)', border: '1px solid #EF4444', padding: '12px', borderRadius: '12px', color: '#B91C1C', fontSize: '14px' }}>
+                {verifyError}
+              </div>
+            )}
+
             <button 
               type="button" 
               onClick={handleVerify}
@@ -122,7 +186,7 @@ export default function EmailVerification(): React.JSX.Element {
                 backgroundColor: code.length === 6 ? '#4F46E5' : '#9CA3AF', 
                 color: 'white', 
                 border: 'none', 
-                padding: '14px', // Buton dikey genişliği auth sayfasındakiyle eşitlendi
+                padding: '14px', 
                 borderRadius: '12px', 
                 fontWeight: 'bold', 
                 fontSize: '16px', 
@@ -140,7 +204,7 @@ export default function EmailVerification(): React.JSX.Element {
               <FiArrowRight />
             </button>
 
-            {/* Alt Kısım: Yeniden Kod İsteme Linki */}
+            {/* Yeniden Kod İsteme Alanı */}
             <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '14px', color: '#6B7280' }}>
               Kodu almadın mı?{' '}
               <span 
