@@ -1,122 +1,97 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import AuthPage from './components/AuthPage'; 
+import EmailVerification from './components/EmailVerification';
+import UserFeed from './components/pages/UserFeed';
+import { ProfilePage } from './components/pages/ProfilePage'; 
+import AdminDashboard from './components/pages/AdminDashboard'; 
 
-function App() {
-  const [count, setCount] = useState(0)
+/* =========================================================================
+   🛡️ 1. KAPICI (KORUYUCU): Sadece Giriş Yapmış Normal Kullanıcılar İçin
+   ========================================================================= */
+function UserRoute({ children }: { children: React.JSX.Element }): React.JSX.Element {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+  // Token yoksa veya giriş yapan kişi admin ise buraya girmesin (Admin kendi paneline gitmeli)
+  if (!token) {
+    return <Navigate to="/auth" replace />;
+  }
+  
+  if (role === 'admin') {
+    return <Navigate to="/admin" replace />;
+  }
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  return children;
 }
 
-export default App
+/* =========================================================================
+   👑 2. KAPICI (KORUYUCU): Sadece Giriş Yapmış Adminler İçin
+   ========================================================================= */
+function AdminRoute({ children }: { children: React.JSX.Element }): React.JSX.Element {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+
+  // Giriş yapılmadıysa veya rolü admin değilse, kaçak giriş denemesini engelle ve auth'a şutla!
+  if (!token || role !== 'ADMIN') {
+    alert("Bu sayfaya erişim yetkiniz bulunmamaktadır!");
+    return <Navigate to="/auth" replace />;
+  }
+
+  return children;
+}
+
+/* =========================================================================
+   🚀 ANA UYGULAMA BİLEŞENİ (APP)
+   ========================================================================= */
+export default function App(): React.JSX.Element {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* 🔓 HERKESE AÇIK ROTAlAR */}
+        {/* Giriş ve Kayıt Sayfası */}
+        <Route path="/auth" element={<AuthPage />} />
+
+        {/* E-posta Doğrulama Sayfası */}
+        <Route path="/verify" element={<EmailVerification />} />
+
+
+        {/* 🔒 KORUMALI KULLANICI ROTALARI (Giriş yapmayan veya admin olan giremez) */}
+        <Route 
+          path="/home" 
+          element={
+            <UserRoute>
+              <UserFeed />
+            </UserRoute>
+          } 
+        />
+        
+        <Route 
+          path="/profile" 
+          element={
+            <UserRoute>
+              <ProfilePage />
+            </UserRoute>
+          } 
+        />
+
+
+        {/* 👑 KORUMALI ADMİN ROTASI (Sadece rolü 'admin' olanlar girebilir) */}
+        <Route 
+          path="/admin" 
+          element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } 
+        />
+
+
+        {/* 🔄 GEÇERSİZ URL KORUMASI */}
+        {/* Kullanıcı tanımlanmamış bir adrese ya da direkt boş siteye girerse otomatik olarak /auth sayfasına yönlendir */}
+        <Route path="*" element={<Navigate to="/auth" replace />} />
+
+      </Routes>
+    </BrowserRouter>
+  );
+}
