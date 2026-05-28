@@ -4,7 +4,7 @@ import { FiTrash2, FiPlus, FiX, FiSend, FiBookmark, FiUsers, FiLayers } from 're
 import axios from 'axios';
 
 // 🚀 BACKEND DOKÜMANTASYONUNA UYGUN: Port 3000 ve /api prefix'i yok
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://fisilti-12i6.onrender.com';
 
 interface Whisper {
   id: number;     // 🎯 Dokümandaki gibi "id"

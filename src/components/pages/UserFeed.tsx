@@ -21,7 +21,7 @@ export default function UserFeed(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true);
 
   // BACKEND BAĞLANTISI: Port 3000 ve /api prefix'i YOK
-  const API_BASE_URL = 'http://localhost:3000';
+  const API_BASE_URL = 'https://fisilti-12i6.onrender.com';
 
   /* =========================================================================
      📥 API: ANA AKIŞI (TAKİP EDİLENLERİN GÖNDERİLERİNİ) BACKEND'DEN ÇEK

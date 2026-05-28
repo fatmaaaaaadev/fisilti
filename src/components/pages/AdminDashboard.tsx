@@ -4,7 +4,7 @@ import { FiUsers, FiMessageSquare, FiUserCheck, FiEye, FiEyeOff, FiTrendingUp, F
 import axios from 'axios';
 
 // 🎯 BACKEND GERÇEĞİ: Port 3000 ve /api prefix'i yok
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://fisilti-12i6.onrender.com';
 
 interface ReportedPost {
   id: number;          // 🎯 _id değil, id: number

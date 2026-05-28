@@ -5,7 +5,7 @@ import { FiMail, FiClock, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
 import axios from 'axios';
 
 // 🚀 BACKEND BAĞLANTISI GÜNCELLEMESİ: Port 3000 yapıldı ve /api kaldırıldı
-const API_BASE_URL = 'http://localhost:3000/auth';
+const API_BASE_URL = 'https://fisilti-12i6.onrender.com/auth';
 
 export default function EmailVerification(): React.JSX.Element {
   const navigate = useNavigate();
