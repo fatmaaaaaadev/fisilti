@@ -1,67 +1,157 @@
-import React, { useState } from 'react';
-import { Sidebar } from '../Sidebar'; // Klasör yolunu projene göre kontrol etmeyi unutma
+import React, { useState, useEffect } from 'react';
+import { Sidebar } from '../Sidebar'; 
 import { FiTrash2, FiPlus, FiX, FiSend, FiBookmark, FiUsers, FiLayers } from 'react-icons/fi';
+import axios from 'axios';
+
+// 🚀 BACKEND DOKÜMANTASYONUNA UYGUN: Port 3000 ve /api prefix'i yok
+const API_BASE_URL = 'https://fisilti-12i6.onrender.com';
 
 interface Whisper {
+  id: number;     // 🎯 Dokümandaki gibi "id"
+  content: string; // 🎯 Dokümandaki gibi "text" yerine "content"
+  createdAt: string; 
+}
+
+interface UserProfile {
   id: number;
-  text: string;
-  date: string;
+  username: string;
+  email: string;
+  role: "USER" | "ADMIN";
+}
+
+// 🎯 ALPER'İN CONTROLLER YAPISINA UYGUN SAYI MODELİ
+interface FollowCounts {
+  followersCount: number;
+  followingCount: number;
 }
 
 export const ProfilePage: React.FC = () => {
-  // 1. GÖNDERİLER: Başlangıç verileri
-  const [whispers, setWhispers] = useState<Whisper[]>([
-    { id: 1, text: "Yeni bir tasarım sistemi üzerinde çalışıyorum. Minimalizm, az ile çok şey anlatma sanatı.", date: "6 Mayıs 2026 14:10" },
-    { id: 2, text: "Kitap önerisi: 'Sessizliğin Gücü'. Bir hafta sonu için biçilmiş kaftan.", date: "3 Mayıs 2026 20:48" },
-    { id: 3, text: "Kahvenin yanına ne yakışır? Cevap: bir defter ve boş bir sayfa.", date: "29 Nisan 2026 09:15" }
-  ]);
+  // 👥 Kullanıcı profil bilgisi
+  const [user, setUser] = useState<UserProfile | null>(null);
 
-  // 2. SEKMELER: Profil içi alt sekmeler
+  // 📝 Gönderiler State'i
+  const [whispers, setWhispers] = useState<Whisper[]>([]);
   const [activeSubTab, setActiveSubTab] = useState<'posts' | 'following' | 'saved'>('posts');
   
-  // 3. YENİ FISILTI MODALI: Durum kontrolleri
+  // 📊 TAKİPÇİ VE TAKİP EDİLEN SAYILARI STATE'İ (Başlangıçta 0)
+  const [counts, setCounts] = useState<FollowCounts>({ followersCount: 0, followingCount: 0 });
+
+  // 💬 Modal ve Yeni Fısıltı State'leri
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newWhisperText, setNewWhisperText] = useState('');
   const maxCharacters = 240;
 
-  // Yeni Fısıltı Ekleme
-  const handleCreateWhisper = () => {
-    if (newWhisperText.trim() === '') return;
-
-    const now = new Date();
-    const formattedDate = `${now.getDate()} Mayıs 2026 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-    const newWhisper: Whisper = {
-      id: Date.now(),
-      text: newWhisperText,
-      date: formattedDate
-    };
-
-    setWhispers([newWhisper, ...whispers]); 
-    setNewWhisperText('');
-    setIsModalOpen(false);
+  const token = localStorage.getItem('token');
+  const axiosConfig = {
+    headers: { Authorization: `Bearer ${token}` }
   };
 
-  // Fısıltı Silme
-  const handleDeleteWhisper = (id: number) => {
-    setWhispers(whispers.filter(w => w.id !== id));
+  /* =========================================================================
+      🔄 SAYFA AÇILDIĞINDA LOCALSTORAGE'DAN USER ID ALIP VERİLERİ ÇEKMEK
+     ========================================================================= */
+  useEffect(() => {
+    const savedUserStr = localStorage.getItem('user');
+    if (savedUserStr) {
+      const parsedUser = JSON.parse(savedUserStr) as UserProfile;
+      setUser(parsedUser);
+      
+      // Hem fısıltıları hem de takip sayılarını çekiyoruz
+      fetchMyWhispers(parsedUser.id);
+      fetchFollowCounts(parsedUser.id);
+    }
+  }, []);
+
+  // 📥 API: Sunucudan fısıltıları getiren fonksiyon
+  const fetchMyWhispers = async (userId: number) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/posts/user/${userId}`, axiosConfig);
+      
+      if (Array.isArray(response.data)) {
+        setWhispers(response.data);
+      } else if (response.data && Array.isArray(response.data.posts)) {
+        setWhispers(response.data.posts);
+      } else if (response.data && Array.isArray(response.data.whispers)) {
+        setWhispers(response.data.whispers);
+      }
+    } catch (error) {
+      console.error("Fısıltılar çekilirken bir hata oluştu:", error);
+    }
+  };
+
+  // 📥 API: ALPER'İN GET /users/:id/counts ENDPOINT'İNDEN SAYILARI ÇEKEN FONKSİYON
+  const fetchFollowCounts = async (userId: number) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/users/${userId}/counts`, axiosConfig);
+      if (response.data) {
+        setCounts({
+          followersCount: response.data.followersCount ?? 0,
+          followingCount: response.data.followingCount ?? 0
+        });
+      }
+    } catch (error) {
+      console.error("Takip sayıları backend'den alınamadı:", error);
+    }
+  };
+
+  /* =========================================================================
+      🚀 API ENTEGRASYONU: YENİ GÖNDERİ EKLEME (POST /posts)
+     ========================================================================= */
+  const handleCreateWhisper = async () => {
+    if (newWhisperText.trim() === '') return;
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/posts`, 
+        { content: newWhisperText }, 
+        axiosConfig
+      );
+
+      if (response.status === 201 || response.status === 200) {
+        const createdWhisper: Whisper = response.data.post || response.data.whisper || response.data;
+        
+        if (createdWhisper && createdWhisper.content) {
+          setWhispers([createdWhisper, ...whispers]);
+        } else {
+          setWhispers([{ id: Date.now(), content: newWhisperText, createdAt: new Date().toISOString() }, ...whispers]);
+        }
+
+        setNewWhisperText('');
+        setIsModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Fısıltı gönderilirken hata oluştu:", error);
+      alert("Fısıltı gönderilirken sunucu hatası oluştu.");
+    }
+  };
+
+  /* =========================================================================
+      🗑️ API ENTEGRASYONU: GÖNDERİ SİLME (DELETE /posts/:id)
+     ========================================================================= */
+  const handleDeleteWhisper = async (id: number) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/posts/${id}`, axiosConfig);
+      
+      if (response.status === 200) {
+        setWhispers(whispers.filter(w => w.id !== id));
+      }
+    } catch (error) {
+      alert("Fısıltı silinirken bir hata meydana geldi.");
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Az Önce";
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    return new Date(dateString).toLocaleDateString('tr-TR', options);
   };
 
   return (
-    <div style={{ display: 'flex', backgroundColor: '#FDFBF7', minHeight: '100vh', 
-      width: '100vw',  }}>
+    <div style={{ display: 'flex', backgroundColor: '#FDFBF7', minHeight: '100vh', width: '100vw' }}>
       
-      {/* SOL TARAF: Sabit Sidebar
-        TypeScript hatasını çözmek için beklediği propları gönderiyoruz.
-        NOT: Eğer senin Sidebar dosyan "profile" yerine büyük harfle "Profilim" 
-        veya başka bir string bekliyorsa, currentTab="profile" kısmını ona göre değiştirebilirsin.
-      */}
-      <Sidebar 
-        currentTab="profile" 
-        setCurrentTab={(tab: any) => console.log("Sekme değiştirildi:", tab)} 
-      />
+      {/* SOL TARAF: Sabit Sidebar */}
+      <Sidebar />
 
-      {/* SAĞ TARAF: Profil İçeriği (Yenilenen Açık Tema) */}
+      {/* SAĞ TARAF: Profil İçeriği */}
       <div style={{
         flex: 1,
         marginLeft: '260px',
@@ -76,7 +166,6 @@ export const ProfilePage: React.FC = () => {
           
           {/* PROFİL ÜST BİLGİ ALANI */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '24px', marginBottom: '32px' }}>
-            {/* Profil Fotoğrafı */}
             <div style={{
               width: '90px',
               height: '90px',
@@ -91,15 +180,15 @@ export const ProfilePage: React.FC = () => {
               border: '3px solid #4F46E5',
               boxShadow: '0px 4px 12px rgba(91, 192, 190, 0.2)'
             }}>
-              EY
+              {user?.username ? user.username.slice(0, 2).toUpperCase() : 'U'}
             </div>
             
-            {/* İsim ve Biyografi */}
             <div>
-              <h2 style={{ fontSize: '26px', margin: 0, textAlign: "left", fontWeight: 'bold', color: '#1E1B4B' }}>Elif Yılmaz</h2>
-              <p style={{ color: '#6B7280', margin: '4px 0 12px 0', textAlign: "left", fontWeight: '500' }}>@elifyilmaz</p>
-              <p style={{ color: '#4B5563', fontSize: '15px', margin: 0, lineHeight: '1.5' }}>
-                Tasarımcı, gezgin, kahve tutkunu. Düşüncelerimi buraya fısıldıyorum.
+              <h2 style={{ fontSize: '26px', margin: 0, textAlign: "left", fontWeight: 'bold', color: '#1E1B4B' }}>
+                {user?.username ? `${user.username}` : 'Kullanıcı'}
+              </h2>
+              <p style={{ color: '#6B7280', margin: '4px 0 12px 0', textAlign: "left", fontWeight: '500' }}>
+                {user?.email}
               </p>
             </div>
           </div>
@@ -112,29 +201,25 @@ export const ProfilePage: React.FC = () => {
             paddingBottom: '16px',
             marginBottom: '24px'
           }}>
-            {/* Fısıltı Sayısı Sekmesi */}
-            <div 
-              onClick={() => setActiveSubTab('posts')}
-              style={{ cursor: 'pointer', transition: '0.2s' }}
-            >
-              <span style={{ fontWeight: 'bold', fontSize: '15px', color: activeSubTab === 'posts' ? '#1E1B4B' : '#64748B' }}>{whispers.length} fısıltı</span>
+            <div onClick={() => setActiveSubTab('posts')} style={{ cursor: 'pointer', transition: '0.2s' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '15px', color: activeSubTab === 'posts' ? '#1E1B4B' : '#64748B' }}>
+                {whispers.length} fısıltı
+              </span>
             </div>
 
-            {/* Takip Edilenler Sekmesi */}
-            <div 
-              onClick={() => setActiveSubTab('following')}
-              style={{ cursor: 'pointer', transition: '0.2s' }}
-            >
-              <span style={{ fontWeight: 'bold', fontSize: '15px', color: activeSubTab === 'following' ? '#1E1B4B' : '#64748B' }}>312 takip edilen</span>
-              
+            {/* 🎯 BURASI DİNAMİKLEŞTİ: Statik 312 yerine backend'den gelen gerçek sayıyı yazıyoruz */}
+            <div onClick={() => setActiveSubTab('following')} style={{ cursor: 'pointer', transition: '0.2s' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '15px', color: activeSubTab === 'following' ? '#1E1B4B' : '#64748B' }}>
+                {counts.followingCount} takip edilen
+              </span>
             </div>
 
-            {/* Kaydedilenler Sekmesi */}
-            <div 
-              onClick={() => setActiveSubTab('saved')}
-              style={{ cursor: 'pointer', transition: '0.2s' }}
-            >
-              <span style={{ fontWeight: 'bold', fontSize: '15px', color: activeSubTab === 'saved' ? '#1E1B4B' : '#64748B' }}>Kaydedilenler</span>
+            
+
+            <div onClick={() => setActiveSubTab('saved')} style={{ cursor: 'pointer', transition: '0.2s' }}>
+              <span style={{ fontWeight: 'bold', fontSize: '15px', color: activeSubTab === 'saved' ? '#1E1B4B' : '#64748B' }}>
+                Kaydedilenler
+              </span>
             </div>
           </div>
 
@@ -158,43 +243,51 @@ export const ProfilePage: React.FC = () => {
           {/* İÇERİK LİSTESİ */}
           {activeSubTab === 'posts' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {whispers.map(whisper => (
-                <div key={whisper.id} style={{
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: '16px',
-                  padding: '24px',
-                  border: '1px solid #E5E7EB',
-                  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
-                }}>
-                  <p style={{ margin: '0 0 20px 0', fontSize: '16px', textAlign:"left", lineHeight: '1.6', color: '#1F2937' }}>
-                    {whisper.text}
-                  </p>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ color: '#9CA3AF', fontSize: '13px', fontWeight: '500' }}>{whisper.date}</span>
-                    <button 
-                      onClick={() => handleDeleteWhisper(whisper.id)}
-                      style={{
-                        background: 'none', border: 'none', color: '#EF4444',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '8px',
-                        borderRadius: '50%', transition: 'background-color 0.2s'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                    >
-                      <FiTrash2 style={{ fontSize: '18px' }} />
-                    </button>
+              {whispers.length > 0 ? (
+                whispers.map(whisper => (
+                  <div key={whisper.id} style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: '16px',
+                    padding: '24px',
+                    border: '1px solid #E5E7EB',
+                    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)'
+                  }}>
+                    <p style={{ margin: '0 0 20px 0', fontSize: '16px', textAlign:"left", lineHeight: '1.6', color: '#1F2937' }}>
+                      {whisper.content}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#9CA3AF', fontSize: '13px', fontWeight: '500' }}>
+                        {formatDate(whisper.createdAt)}
+                      </span>
+                      <button 
+                        onClick={() => handleDeleteWhisper(whisper.id)}
+                        style={{
+                          background: 'none', border: 'none', color: '#EF4444',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '8px',
+                          borderRadius: '50%', transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <FiTrash2 style={{ fontSize: '18px' }} />
+                      </button>
+                    </div>
                   </div>
+                ))
+              ) : (
+                <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '32px', border: '1px solid #E5E7EB', color: '#6B7280', textAlign: 'center', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
+                  Henüz bir fısıltı paylaşmadın. Dünyaya sesini duyur!
                 </div>
-              ))}
+              )}
             </div>
           ) : (
             <div style={{ backgroundColor: '#FFFFFF', borderRadius: '16px', padding: '32px', border: '1px solid #E5E7EB', color: '#6B7280', textAlign: 'center', boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.04)' }}>
-              Henüz burada bir fısıltı yok.
+              {activeSubTab === 'following' ? "Takip ettiğin kullanıcıların listesi yakında burada olacak." : "Bu alan şu an geliştirilme aşamasındadır."}
             </div>
           )}
         </div>
 
-        {/* SAĞ ALT: CANLI TURKUAZ YÜZEN ARTI (+) BUTONU */}
+        {/* SAĞ ALT PANEL: YÜZEN ARTI (+) BUTONU */}
         <button
           onClick={() => setIsModalOpen(true)}
           style={{
@@ -218,7 +311,7 @@ export const ProfilePage: React.FC = () => {
           <FiPlus style={{ fontSize: '28px' }} />
         </button>
 
-        {/* MODAL PENCERESİ */}
+        {/* YENİ FISILTI YAZMA MODALİ */}
         {isModalOpen && (
           <div style={{
             position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
@@ -241,8 +334,8 @@ export const ProfilePage: React.FC = () => {
               <h3 style={{ margin: '0 0 24px 0', fontSize: '18px', fontWeight: 'bold', color: '#1E1B4B' }}>Yeni Fısıltı</h3>
 
               <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#F3F4F6', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', color: '#4F46E5' }}>
-                  S
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#4F46E5', display: 'flex', justifyContent: 'center', alignItems: 'center', fontWeight: 'bold', color: '#FFFFFF' }}>
+                  {user?.username ? user.username.slice(0, 1).toUpperCase() : 'U'}
                 </div>
                 <div style={{ flex: 1 }}>
                   <textarea

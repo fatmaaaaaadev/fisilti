@@ -1,8 +1,10 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors'); // 1. CORS kütüphanesini içeri aldık
 const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+app.use(cors({ origin: '*' })); // 2. CORS iznini EN BAŞA ekledik (Tüm portlara kapıyı açtık)
 app.use(express.json());
 
 // ─── Route'lar ────────────────────────────────────────────────────────────────

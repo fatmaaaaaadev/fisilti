@@ -1,16 +1,36 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { FiShield, FiLogOut } from 'react-icons/fi';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+interface AdminInfo {
+  username: string;
+  email: string; // 🎯 BACKEND UYUMU: Name alanı yerine backend modelindeki email'i kullanıyoruz
+}
+
 export const AdminSidebar: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // Admin URL kontrolü için
-
-  // Admin panelinde miyiz kontrolü (/admin adresindeyse mor yanacak)
+  const location = useLocation();
   const isAdminActive = location.pathname === '/admin';
 
+  const [adminUser, setAdminUser] = useState<AdminInfo | null>(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      setAdminUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  /* =========================================================================
+     🔒 OTURUMU KAPATMA VE TEMİZLEME İŞLEMİ (HATASIZ VE ONAY KUTUSUZ)
+     ========================================================================= */
   const handleLogout = () => {
-    navigate('/auth'); // Çıkış yapınca auth sayfasına fırlatır
+    // 1. Tarayıcı hafızasını tamamen temizliyoruz
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // 2. navigate kullanmak yerine doğrudan tarayıcıyı auth sayfasına yönlendiriyoruz (Asla hata vermez)
+    window.location.href = '/auth'; 
   };
 
   return (
@@ -31,8 +51,8 @@ export const AdminSidebar: React.FC = () => {
     }}>
       
       <div>
-        {/* ÜST KISIM: Orijinal Konuşma Balonlu Fısıltı Logosu */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', paddingLeft: '8px' }}>
+        {/* LOGO ALANI */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', paddingLeft: '8px' }}>
           <div style={{ 
             width: '44px', 
             height: '44px', 
@@ -56,11 +76,8 @@ export const AdminSidebar: React.FC = () => {
           </span>
         </div>
 
-        
-        {/* Menü Navigasyon Alanı */}
+        {/* MENÜ NAVİGASYONU */}
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          
-          {/* ADMİN YÖNETİM PANELİ BUTONU */}
           <button
             onClick={() => navigate('/admin')}
             style={{
@@ -68,7 +85,7 @@ export const AdminSidebar: React.FC = () => {
               alignItems: 'center',
               gap: '14px',
               width: '100%',
-              padding: '24px 16px',
+              padding: '14px 16px', 
               borderRadius: '12px',
               border: 'none',
               fontWeight: 'bold',
@@ -83,35 +100,57 @@ export const AdminSidebar: React.FC = () => {
             <FiShield style={{ fontSize: '18px' }} />
             Yönetici Paneli
           </button>
-
         </nav>
       </div>
 
-      {/* EN ALT KISIM: Kırmızı Çıkış Yap Butonu */}
-      <button
-        onClick={handleLogout}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '14px',
-          width: '100%',
-          padding: '14px 16px',
-          borderRadius: '12px',
-          border: 'none',
-          backgroundColor: 'transparent',
-          color: '#EF4444',
-          fontWeight: 'bold',
-          fontSize: '15px',
-          cursor: 'pointer',
-          transition: 'all 0.2s',
-          textAlign: 'left'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-      >
-        <FiLogOut style={{ fontSize: '18px' }} />
-        Çıkış Yap
-      </button>
+      {/* ALT ALAN: AKTİF ADMİN BİLGİSİ VE ÇIKIŞ BUTONU */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        
+        {/* Admin Bilgi Kartı */}
+        {adminUser && (
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            padding: '12px 16px', 
+            backgroundColor: '#F9FAFB', 
+            borderRadius: '12px',
+            border: '1px solid #F3F4F6',
+            textAlign: 'left'
+          }}>
+            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1E1B4B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {adminUser.email}
+            </span>
+            <span style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+              {adminUser.username} 
+            </span>
+          </div>
+        )}
+
+        <button
+          onClick={handleLogout}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            width: '100%',
+            padding: '14px 16px',
+            borderRadius: '12px',
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: '#EF4444',
+            fontWeight: 'bold',
+            fontSize: '15px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            textAlign: 'left'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+        >
+          <FiLogOut style={{ fontSize: '18px' }} />
+          Çıkış Yap
+        </button>
+      </div>
 
     </div>
   );
