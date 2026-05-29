@@ -1,13 +1,14 @@
 const nodemailer = require('nodemailer');
 
-// Host ve portu garanti olması için direkt el ile sabitliyoruz 🚀
+// Yeni Gmail / SSL ayarlarıyla transporter güncellendi 🚀
 const transporter = nodemailer.createTransport({
+  service: 'gmail',
   host: 'smtp.gmail.com',
-  port: 587, 
-  secure: false, // 587 portu için false kalmalı
+  port: 465,         // 👈 Port 465 yapıldı
+  secure: true,      // 👈 Secure değeri TRUE yapıldı (Port 465 SSL protokolü olduğu için)
   auth: {
-    user: process.env.SMTP_USER, // Render'daki e-posta adresin
-    pass: process.env.SMTP_PASS, // Render'daki 16 haneli uygulama şifren
+    user: process.env.SMTP_USER, // Render panelindeki Gmail adresi
+    pass: process.env.SMTP_PASS  // Render panelindeki 16 haneli Uygulama Şifresi
   },
   tls: {
     rejectUnauthorized: false // Render sunucusunun DNS/Sertifika hatası vermesini engeller
