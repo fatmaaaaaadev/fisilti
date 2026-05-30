@@ -1,4 +1,6 @@
 const adminService = require('../services/admin.service');
+const { PrismaClient } = require('@prisma/client'); // 💡 Require formatına çevirdik
+const prisma = new PrismaClient();
 
 // GET /admin/users
 async function getAllUsers(req, res, next) {
@@ -82,4 +84,56 @@ async function getAdminLogs(req, res, next) {
   }
 }
 
-module.exports = { getAllUsers, banUser, unbanUser, getAllReports, getReportsByPost, hidePost, getAdminLogs };
+// 🎯 YENİ ENDPOINT: Raporlanan detaylı gönderileri çeken fonksiyonumuz
+async function getReportedPosts(req, res, next) {
+  try {
+    const reportedPosts = await prisma.post.findMany({
+      where: {
+        reports: {
+          some: {} 
+        }
+      },
+      include: {
+        _count: {
+          select: { reports: true } 
+        },
+        reports: {
+          select: {
+            reason: true 
+          }
+        },
+        user: {
+          select: {
+            username: true 
+          }
+        }
+      }
+    });
+
+    const formattedReports = reportedPosts.map(post => ({
+      id: post.id,
+      content: post.content,
+      username: post.user.username,
+      reportCount: post._count.reports, 
+      reasons: post.reports.map(r => r.reason).filter(Boolean), 
+      isActive: post.isActive
+    }));
+
+    return res.status(200).json(formattedReports);
+  } catch (error) {
+    console.error("Raporlar getirilirken backend hatası:", error);
+    next(error); // Diğer fonksiyonlardaki gibi merkezi hata yakalayıcıya pasladık
+  }
+}
+
+// 💡 getReportedPosts fonksiyonunu da buraya ekleyerek dışarıya açtık!
+module.exports = { 
+  getAllUsers, 
+  banUser, 
+  unbanUser, 
+  getAllReports, 
+  getReportsByPost, 
+  hidePost, 
+  getAdminLogs,
+  getReportedPosts 
+};

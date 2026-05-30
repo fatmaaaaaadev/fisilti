@@ -24,4 +24,7 @@ router.get('/stats',                   statsController.getPlatformStats);
 // ─── Admin İşlem Logları ──────────────────────────────────────────────────────
 router.get('/logs',                    adminController.getAdminLogs);
 
+// Raporlanan postları getiren yeni endpoint'imiz
+router.get('/reports', getReportedPosts);
+
 module.exports = router;
