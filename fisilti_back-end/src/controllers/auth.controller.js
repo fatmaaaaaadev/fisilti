@@ -37,6 +37,21 @@ async function verifyEmail(req, res, next) {
   }
 }
 
+// POST /auth/resend-verify-code (Hatayı çözen yeni fonksiyon 🚀)
+async function resendVerifyCode(req, res, next) {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: 'userId zorunludur.' });
+    }
+
+    const result = await authService.resendVerifyCode({ userId: Number(userId) });
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
 // POST /auth/login
 async function login(req, res, next) {
   try {
@@ -67,4 +82,4 @@ async function deleteAccount(req, res, next) {
   }
 }
 
-module.exports = { register, verifyEmail, login, deleteAccount };
+module.exports = { register, verifyEmail, resendVerifyCode, login, deleteAccount };
