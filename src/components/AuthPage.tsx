@@ -1,74 +1,118 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// TypeScript'in istediği gibi 'type' olarak import ediyoruz, böylece o hata tamamen çözülüyor!
 import type { ChangeEvent } from 'react';
+import axios from 'axios';
 
-
+// 🚀 BACKEND BAĞLANTISI GÜNCELLEMESİ: Port 3000 yapıldı ve /api prefix'i kaldırıldı
+const API_BASE_URL = 'https://fisilti-12i6.onrender.com/auth';
 
 export default function AuthPage(): React.JSX.Element {
-  const navigate = useNavigate(); // 2. Fonksiyonun İLK satırında navigate tanımlı
-  // Giriş mi Kayıt mı sekmesinde olduğumuzu tutan state
-  
+  const navigate = useNavigate(); 
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
-  
-  
   const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [country, setCountry] = useState<string>('');
 
-  // Hata gösterimleri (Kullanılmayan set fonksiyonu uyarılarını engellemek için sadece string tuttuk)
+  // Hata gösterimleri
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
 
+  /* ----------------- 🔐 API ENTEGRASYONU: GİRİŞ YAP ----------------- */
+  const handleLogin = async () => {
+    setLoginError(null);
 
+    if (!email) {
+      setLoginError("E-posta veya kullanıcı adı girmelisiniz.");
+      return;
+    }
+    if (password.length < 6) {
+      setLoginError("Şifre en az 6 karakter olmalıdır.");
+      return;
+    }
 
-  const handleLogin = () => {
-  // Her denemede önce eski hatayı temizle
-  setLoginError(null);
+    try {
+      // Backend'deki login endpoint'ine verileri POST ediyoruz
+      const response = await axios.post(`${API_BASE_URL}/login`, {
+        email: email,      
+        password: password  
+      });
 
-  if (!email) {
-    setLoginError("E-posta veya kullanıcı adı girmelisiniz.");
-    return;
-  }
-  if (password.length < 6) {
-    setLoginError("Şifre en az 6 karakter olmalıdır.");
-    return;
-  }
+      // Backend'den gelen veriyi kontrol ediyoruz
+      if (response.data && response.data.token) {
+        // 1. Token'ı tarayıcı hafızasına alıyoruz
+        localStorage.setItem('token', response.data.token);
+        
+        // 2. 🎯 BÜYÜK HARF ROL KONTROLÜ (Dikkat: "ADMIN" veya "USER" geliyor)
+        const userRole = response.data.user?.role || 'USER'; 
+        localStorage.setItem('role', userRole);
+        
+        if (response.data.user) {
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+        }
 
-  // Eğer buraya kadar geldiyse hata yoktur
-  alert("Giriş başarılı!");
-};
+        
+        
+        // 3. 🗺️ BÜYÜK HARFE GÖRE YÖNLENDİRME KAPISI
+        if (userRole === 'ADMIN') {
+          navigate('/admin'); // Admin paneline uçur
+        } else {
+          navigate('/home');  // Normal kullanıcı ana akışına uçur
+        }
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Giriş yapılırken sunucu kaynaklı bir hata oluştu.";
+      setLoginError(errorMessage);
+    }
+  };
 
-  const handleRegister = () => {
-  setRegisterError(null);
+  /* ----------------- 📝 API ENTEGRASYONU: KAYIT OL ----------------- */
+  const handleRegister = async () => {
+    setRegisterError(null);
 
-  if (!username || !email || !password || !country) {
-    setRegisterError('Hatalı şifre veya eksik bilgi. Lütfen tekrar deneyin.');
-    return;
-  }
+    if (!username || !email || !password || !country) {
+      setRegisterError('Lütfen tüm alanları eksiksiz doldurun.');
+      return;
+    }
 
-  if (password.length < 6) {
-    setRegisterError("Şifre en az 6 karakter olmalıdır.");
-    return;
-  }
+    if (password.length < 6) {
+      setRegisterError("Şifre en az 6 karakter olmalıdır.");
+      return;
+    }
 
-  if (!email.includes("@")) {
-    setRegisterError("Geçerli bir e-posta adresi girin.");
-    return;
-  }
+    if (!email.includes("@")) {
+      setRegisterError("Geçerli bir e-posta adresi girin.");
+      return;
+    }
 
-  // BAĞLANTI BURADA YAPILIYOR: Kayıt başarılıysa kullanıcıyı /verify sayfasına uçur!
-    navigate('/verify');
-};
+    try {
+      const response = await axios.post(`${API_BASE_URL}/register`, {
+        username: username,
+        email: email,
+        password: password,
+        country: country
+      });
+
+      // handleRegister fonksiyonunun içindeki başarılı response kısmına:
+if (response.status === 200 || response.status === 201) {
+  localStorage.setItem('pendingEmail', email); // E-posta bilgisini verify sayfası için saklıyoruz
+  
+  navigate('/verify');
+}
+
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Kayıt olurken bir hata oluştu. Lütfen tekrar deneyin.";
+      setRegisterError(errorMessage);
+    }
+  };
 
   return (
     <div style={{ 
-        backgroundColor: '#FDFBF7', // Arka plan tamamen kırık beyaz
-        height: '100vh',            // Tarayıcı yüksekliğini %100 kapla
-        width: '100vw',             // Tarayıcı genişliğini %100 kapla
-        position: 'fixed',          // Ekranı kilitler ve bölünmeleri engeller
+        backgroundColor: '#FDFBF7', 
+        height: '100vh',            
+        width: '100vw',             
+        position: 'fixed',          
         top: 0,
         left: 0,
         color: '#1E1B4B', 
@@ -78,13 +122,12 @@ export default function AuthPage(): React.JSX.Element {
         padding: '24px', 
         fontFamily: 'sans-serif',
         boxSizing: 'border-box',
-        overflowY: 'auto'           // İçerik ekrana sığmazsa pürüzsüzce aşağı kaydırılabilmesini sağlar
+        overflowY: 'auto'           
         }}>
       <div style={{ width: '100%', maxWidth: '420px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Üst Kısım: Logo ve Başlık */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', textAlign: 'center' }}>
-          {/* Fısıltı Logosu */}
           <div style={{ width: '70px', height: '70px', backgroundImage: 'linear-gradient(to bottom right, #5bc0be, #4F46E5)', borderRadius: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0px 4px 20px rgba(79, 70, 229, 0.15)' }}>
             <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '3px solid white', borderBottomLeftRadius: '0' }} />
           </div>
@@ -99,7 +142,7 @@ export default function AuthPage(): React.JSX.Element {
           <div style={{ display: 'flex', backgroundColor: '#FDFBF7', padding: '4px', borderRadius: '12px', marginBottom: '32px' }}>
             <button 
               type="button"
-              onClick={() => setActiveTab('login')} // Tıklanınca activeTab'i 'login' yapar
+              onClick={() => setActiveTab('login')} 
               style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', fontWeight: '600', fontSize: '14px', cursor: 'pointer', backgroundColor: activeTab === 'login' ? '#FFFFFF' : 'transparent', color: activeTab === 'login' ? '#1E1B4B' : '#6B7280', transition: 'all 0.2s' }}
             >
               Giriş Yap
@@ -122,22 +165,19 @@ export default function AuthPage(): React.JSX.Element {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '14px', textAlign: 'left', fontWeight: 'bold' }}>Kullanıcı adı veya e-posta</label>
+                <label style={{ fontSize: '14px', textAlign: 'left', fontWeight: 'bold' }}> E-posta</label>
                 <input 
                   type="text"
                   value={email}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                  placeholder="kullaniciadi veya ornek@mail.com" 
+                  placeholder="ornek@mail.com" 
                   style={{ backgroundColor: '#FDFBF7', border: '1px solid #E5E7EB', borderRadius: '12px', padding: '12px', color: '#1E1B4B', outline: 'none' }}
                 />
               </div>
 
-            
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <label style={{ fontSize: '14px', textAlign: 'left', fontWeight: 'bold' }}>Şifre</label>
-                  
-                  
                 </div>
                 <input 
                   type="password"
@@ -197,12 +237,11 @@ export default function AuthPage(): React.JSX.Element {
                   type="password"
                   value={password}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                  placeholder="En az 8 karakter" 
+                  placeholder="En az 6 karakter" 
                   style={{ backgroundColor: '#FDFBF7', border: '1px solid #E5E7EB', borderRadius: '12px', padding: '12px', color: '#1E1B4B', outline: 'none' }}
                 />
               </div>
 
-              {/* Coğrafi istatistik için zorunlu ülke seçimi alanı */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '14px', textAlign: 'left', fontWeight: 'bold' }}>Ülke</label>
                 <select 
@@ -220,7 +259,6 @@ export default function AuthPage(): React.JSX.Element {
                   <option value="ES" style={{ background: '#FFFFFF' }}>İspanya</option>
                   <option value="RU" style={{ background: '#FFFFFF' }}>Rusya</option>
                   <option value="NL" style={{ background: '#FFFFFF' }}>Hollanda</option>
-                  
                 </select>
               </div>
 

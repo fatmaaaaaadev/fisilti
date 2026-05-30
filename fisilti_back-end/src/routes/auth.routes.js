@@ -9,6 +9,9 @@ router.post('/register', authController.register);
 // POST   /auth/verify    — E-posta doğrulama
 router.post('/verify', authController.verifyEmail);
 
+// POST   /auth/resend-verify-code — Yeni doğrulama kodu talep etme (Eklenen Rota 🚀)
+router.post('/resend-verify-code', authController.resendVerifyCode);
+
 // POST   /auth/login     — Giriş ve JWT alma
 router.post('/login', authController.login);
 

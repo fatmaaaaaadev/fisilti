@@ -1,8 +1,13 @@
 require('dotenv').config();
 const express = require('express');
+const cors = require('cors'); // 1. CORS kütüphanesini içeri aldık
 const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: 'https://fisilti-tau.vercel.app',
+  credentials: true
+}));
 app.use(express.json());
 
 // ─── Route'lar ────────────────────────────────────────────────────────────────

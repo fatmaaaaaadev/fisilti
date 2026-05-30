@@ -41,8 +41,18 @@ async function register({ email, username, password, country }) {
   const code = generateVerificationCode();
   const expiresAt = new Date(Date.now() + CODE_EXPIRY_MINUTES * 60 * 1000);
   await authRepo.createVerificationCode(user.id, code, expiresAt);
-  await sendVerificationEmail(email, code);
 
+  // E-posta gönderme işlemini koruma altına alıyoruz:
+  try {
+    await sendVerificationEmail(email, code);
+    console.log(`✅ Doğrulama kodu ${email} adresine başarıyla gönderildi.`);
+  } catch (emailError) {
+    // Eğer mail gönderimi sunucu ayarlarından dolayı patlarsa, sunucu çökmesin!
+    // Hatayı loglasın ama kayıt işlemine devam etsin.
+    console.error('❌ E-posta gönderilirken hata oluştu ama kullanıcı oluşturuldu:', emailError.message);
+  }
+
+  // Sunucu çökmediği için artık frontend'e bu başarı cevabı güvenle ulaşacak!
   return {
     message: 'Kayıt başarılı. Lütfen e-posta adresinizi doğrulayın.',
     userId: user.id,
