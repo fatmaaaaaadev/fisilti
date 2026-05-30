@@ -13,6 +13,12 @@ function UserRoute({ children }: { children: React.JSX.Element }): React.JSX.Ele
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
 
+
+  /* =========================================================================
+   
+   ========================================================================= */
+
+   
   // Token yoksa veya giriş yapan kişi admin ise buraya girmesin (Admin kendi paneline gitmeli)
   if (!token) {
     return <Navigate to="/auth" replace />;
